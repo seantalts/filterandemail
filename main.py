@@ -18,6 +18,14 @@ import webapp2
 from google.appengine.api import users
 from models import Account, ndb, Feed, Filter
 import models
+import os
+
+
+
+import jinja2
+
+jinja_environment = jinja2.Environment(autoescape=True,
+    loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
 
 
 def without_keys(dict_, keys):
@@ -120,8 +128,10 @@ class DeleteAccount(webapp2.RequestHandler, AccountMixin):
 class FeedHandler(webapp2.RequestHandler, AccountMixin):
     def get(self, feed_idx):
         account = self.get_account()
+        template = jinja_environment.get_template("index.html")
         feed = account.feeds[int(feed_idx)]
-        self.response.write(modelform(feed, basepath=self.request.uri))
+        template_values = {"name": 'hi', 'verb': 'lol'}
+        self.response.write(template.render(template_values))
 
     def post(self, feed_idx):
         """add a new filter to the feed"""
