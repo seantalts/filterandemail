@@ -1,0 +1,6 @@
+<form action="/feeds/{{feed_id}}/filters/{{filter_id}}" method="POST">
+  Type: <select name="type"><option value="regex">RegEx</option></select><br />
+  Fields: <input type="text" name="fields" value="{{", ".join(filter.fields)}}" /><br />
+  Params: <input type="text" name="params" value="{{filter.params}}" /><br />
+  <input type="SUBMIT" />
+</form>

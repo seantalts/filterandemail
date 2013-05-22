@@ -1,6 +1,7 @@
 import feedparser
 from bs4 import BeautifulSoup as Soup
-import urllib2
+from eventlet.green import urllib2
+import eventlet
 import re
 
 
@@ -31,18 +32,23 @@ def parse_entry(feed_entry):
 
 
 def filter_parsed_entries(entries, filters):
+
     for entry in entries:
         if all(f(entry) for f in filters):
             yield entry
 
 
 def parsed(entries):
-    return (parse_entry(entry) for entry in entries)
+    pile = eventlet.GreenPile()
 
+    for entry in entries:
+        pile.spawn(parse_entry, entry)
+    return pile
 
 def filter_url(url, filters):
-    feed = feedparser.parse(url)
-    print feed['updated']
+    if not url:
+        return ()
+    feed = feedparser.parse(url)#, modified=modified)
     return filter_parsed_entries(parsed(feed['entries']), filters)
 
 

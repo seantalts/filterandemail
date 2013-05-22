@@ -1,0 +1,25 @@
+<form action="/feeds/{{feed_id}}" method="POST">
+URL: <input type="TEXT", name="url", value="{{feed.url}}" /><br />
+daily rate (in decimal fractions of a day): <input type="TEXT", name="daily_rate", value="{{feed.daily_rate}}" /><br />
+last emailed: {{feed.last_emailed}}<br />
+<input type="SUBMIT" />
+</form>
+<br />
+<h1>Filters:</h1> <br />
+<ol>
+{% for filter in feed.filters %}
+<li><a href="/feeds/{{feed_id}}/filters/{{loop.index0}}">{{filter.type}}: {{filter.params}}</a></li>
+{% endfor %}
+</ol>
+
+<h1>Add new filter: </h1>
+{% set filter = None %}
+{% include "filter.html" %}
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<form action="/feeds/{{feed_id}}/delete" method="POST">
+  <input type="SUBMIT"" value="DELETE ME" />

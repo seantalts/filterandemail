@@ -15,12 +15,13 @@
 # limitations under the License.
 #
 import webapp2
+import webob.exc as exc
 from google.appengine.api import users
 from models import Account, ndb, Feed, Filter
 import models
+import filtr as filter_mod
 import os
-
-
+import datetime
 
 import jinja2
 
@@ -41,6 +42,7 @@ class AccountMixin(object):
                 self.response.write("MAking account\n")
                 account = Account(owner=user, key=ndb.Key(Account, user.user_id()))
                 account.put()
+            self.account = account
             return account
         else:
             self.redirect(users.create_login_url(self.request.uri))
@@ -106,17 +108,9 @@ class MainHandler(webapp2.RequestHandler, AccountMixin):
 
     def get(self):
         account = self.get_account()
-        self.response.write("""
-                            <html><body><p>
-                            """)
+        template = jinja_environment.get_template("index.html")
+        self.response.write(template.render({"account": account}))
 
-        self.response.write(modelform(account, ["owner"]))
-
-    def post(self):
-        account = self.get_account()
-        account.feeds.append(Feed(url=self.request.params['url']))
-        account.put()
-        self.redirect("")
 
 class DeleteAccount(webapp2.RequestHandler, AccountMixin):
     def post(self):
@@ -125,21 +119,54 @@ class DeleteAccount(webapp2.RequestHandler, AccountMixin):
         self.redirect("/")
 
 
-class FeedHandler(webapp2.RequestHandler, AccountMixin):
-    def get(self, feed_idx):
+class NewFeedHandler(webapp2.RequestHandler, AccountMixin):
+    def post(self):
+        """add a new feed to an account"""
         account = self.get_account()
-        template = jinja_environment.get_template("index.html")
-        feed = account.feeds[int(feed_idx)]
-        template_values = {"name": 'hi', 'verb': 'lol'}
+        account.feeds.append(Feed(url=self.request.params['url'],
+                                  daily_rate=float(self.request.params['daily_rate'])))
+        account.put()
+        self.redirect("/feeds/%s" % (len(account.feeds) - 1))
+
+
+class FeedMixin(AccountMixin):
+    def get_feed(self, feed_idx):
+        account = self.get_account()
+        feed_idx = int(feed_idx)
+        if feed_idx > len(account.feeds) - 1:
+            raise exc.HTTPNotFound()
+
+        return self.get_account().feeds[feed_idx]
+
+class FeedHandler(webapp2.RequestHandler, FeedMixin):
+    def get(self, feed_idx):
+        feed = self.get_feed(feed_idx)
+        template = jinja_environment.get_template("feed.html")
+        template_values = {"feed": feed, "feed_id": feed_idx}
         self.response.write(template.render(template_values))
 
     def post(self, feed_idx):
+        feed = self.get_feed(feed_idx)
+        feed.daily_rate = float(self.request.params['daily_rate'])
+        feed.url = self.request.params['url']
+        self.account.put()
+        self.redirect("/feeds/%s" % (feed_idx))
+
+
+def parse_fields(fields):
+    return [f.strip() for f in fields.split(",")]
+
+
+class NewFilterHandler(webapp2.RequestHandler, FeedMixin):
+    def post(self, feed_idx):
         """add a new filter to the feed"""
-        account = self.get_account()
-        feed = account.feeds[int(feed_idx)]
-        feed.filters.append(Filter(type="regex", params=self.request.params['params']))
-        account.put()
-        self.redirect("/feeds/%s" % len(account.feeds) - 1)
+        feed = self.get_feed(feed_idx)
+        feed.filters.append(Filter(type=self.request.params['type'],
+                                   params=self.request.params['params'],
+                                   fields=parse_fields(self.request.params['fields'])))
+        self.account.put()   # eeehh shady
+        self.redirect("/feeds/%s" % (len(self.account.feeds) - 1))
+
 
 class DeleteFeedHandler(webapp2.RequestHandler, AccountMixin):
     def post(self, feed_idx):
@@ -148,17 +175,61 @@ class DeleteFeedHandler(webapp2.RequestHandler, AccountMixin):
         account.put()
         self.redirect("/")
 
-class FilterHandler(webapp2.RequestHandler, AccountMixin):
+class FilterHandler(webapp2.RequestHandler, FeedMixin):
     def get(self, feed_idx, filtr_idx):
-        account = self.get_account()
-        feed = account.feeds[int(feed_idx)]
-        filtr = feed[int(filtr_idx)]
+        feed = self.get_feed(feed_idx)
+        filtr = feed.filters[int(filtr_idx)]
+        template = jinja_environment.get_template("filter_page.html")
+        self.response.write(template.render({"filter": filtr,
+                                             "filter_id": filtr_idx,
+                                             "feed_id": feed_idx}))
+
+    def post(self, feed_idx, filtr_idx):
+        feed = self.get_feed(feed_idx)
+        filtr = feed.filters[int(filtr_idx)]
+        filtr.type = self.request.params['type']
+        filtr.fields = parse_fields(self.request.params['fields'])
+        filtr.params = self.request.params['params']
+        self.account.put()
+        self.redirect(self.request.uri)
+
+
+class DeleteFilterHandler(webapp2.RequestHandler, FeedMixin):
+    def post(self, feed_idx, filter_idx):
+        feed = self.get_feed(feed_idx)
+        del feed.filters[int(filter_idx)]
+        self.account.put()
+        self.redirect("/feeds/%s" % feed_idx)
+
+
+class CronFeedHandler(webapp2.RequestHandler):
+    def get(self):
+        """email updates"""
+        Account.query().map(check_account)
+        print 'done'
+
+
+def check_account(account):
+    print 'checking account:', account
+    for feed in account.feeds:
+        if not feed.last_emailed or (datetime.datetime.now() - feed.last_emailed) > datetime.timedelta(
+            hours=(feed.daily_rate or 1) * 24):
+            #update feed
+            filters = [filter_mod.RegexFilter(filtr.fields, filtr.params) for filtr in feed.filters]
+            results = filter_mod.filter_url(feed.url, filters, feed.last_emailed)
+            print results
+            feed.last_emailed = datetime.datetime.now()
+    account.put()
 
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/delete', DeleteAccount),
+    ('/feeds', NewFeedHandler),
     ('/feeds/(\d+)', FeedHandler),
     ('/feeds/(\d+)/delete', DeleteFeedHandler),
+    ('/feeds/(\d+)/filters(?:/)?', NewFilterHandler),
     ('/feeds/(\d+)/filters/(\d+)', FilterHandler),
+    ('/feeds/(\d+)/filters/(\d+)/delete', DeleteFilterHandler),
+    ('/cron/email_feeds', CronFeedHandler),
 ], debug=True)
