@@ -59,6 +59,5 @@ if __name__ == "__main__":
     from feeds import feeds as FEEDS, email_address
     results = process_feeds(FEEDS)
     if results:
-        print results2msg(results)
-        #email_results(email_address, results)
+        email_results(email_address, results)
     set_last_run()
