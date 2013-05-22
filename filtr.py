@@ -4,6 +4,8 @@ from eventlet.green import urllib2
 import eventlet
 import re
 import unicodedata
+from time import mktime
+from datetime import datetime
 
 
 def link_url(feed_entry):
@@ -33,11 +35,11 @@ def parse_entry(feed_entry):
             return {'link': link, 'page': page,
                     'title': functions['title'](page),
                     'description': functions['description'](page),
+                    'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])),
                     }
 
 
 def filter_parsed_entries(entries, filters):
-
     for entry in entries:
         if all(f(entry) for f in filters):
             yield entry
@@ -50,10 +52,14 @@ def parsed(entries):
         pile.spawn(parse_entry, entry)
     return pile
 
-def filter_url(url, filters):
+
+def filter_url(url, filters, modified=None):
     if not url:
         return ()
-    feed = feedparser.parse(url)#, modified=modified)
+    feed = feedparser.parse(url)
+    filters = list(filters)
+    if modified:
+        filters.append(lambda f: f['updated'] > modified)
     return filter_parsed_entries(parsed(feed['entries']), filters)
 
 
