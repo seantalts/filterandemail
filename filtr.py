@@ -21,9 +21,15 @@ def normalize(string):
     return " ".join(unicodedata.normalize('NFKD', string).encode('ascii','ignore').lower().split())
 
 
+def get_address(page):
+    address = page.find('p', 'mapaddress')
+    if address:
+        return normalize(address.text)
+
 parsers = {
     'craigslist.org/': {'title': lambda page: page.find('h2', 'postingtitle').text,
-                       'description': lambda page: page.find('section', {'id': 'postingbody'}).text,
+                        'description': lambda page: page.find('section', {'id': 'postingbody'}).text,
+                        'address': get_address,
                        }
 }
 
@@ -33,11 +39,12 @@ def parse_entry(feed_entry):
         if search in feed_entry['dc_source']:
             link = link_url(feed_entry)
             page = fetch(link)
-            return {'link': link, 'page': page,
+            return {'link': link,
                     'title': normalize(functions['title'](page)),
                     'description': normalize(functions['description'](page)),
                     'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])).replace(
                         tzinfo=pytz.timezone("UTC")),
+                    'address': functions['address'](page),
                     }
 
 
@@ -66,12 +73,12 @@ def filter_url(url, filters, modified=None):
 
 
 class RegexFilter(object):
-    def __init__(self, fields, regex):
+    def __init__(self, regex, fields=('title', 'description', 'address')):
         self.fields = fields
         self.regex = regex
 
     def __call__(self, entry):
-        return any(re.search(self.regex, entry[field]) for field in self.fields)
+        return any(re.search(self.regex, entry[field]) for field in self.fields if entry[field])
 
     def __str__(self):
         return "%s(%s, %s)" % (self.__class__, self.fields, self.regex)
@@ -79,6 +86,7 @@ class RegexFilter(object):
 class InverseRegexFilter(RegexFilter):
     def __call__(self, entry):
         return not super(InverseRegexFilter, self).__call__(entry)
+
 
 #ImageFilter!?
 
