@@ -6,6 +6,7 @@ import re
 import unicodedata
 from time import mktime
 from datetime import datetime
+import pytz
 
 
 def link_url(feed_entry):
@@ -35,7 +36,8 @@ def parse_entry(feed_entry):
             return {'link': link, 'page': page,
                     'title': functions['title'](page),
                     'description': functions['description'](page),
-                    'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])),
+                    'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])).replace(
+                        tzinfo=pytz.timezone("UTC")),
                     }
 
 

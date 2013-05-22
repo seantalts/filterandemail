@@ -1,11 +1,10 @@
 import erequests
 from itertools import chain
 import eventlet
-from wsgiref.handlers import format_date_time
-import time
 import datetime
 import dateutil.parser
 import smtplib
+import pytz
 from email.mime.text import MIMEText
 
 filtr = eventlet.import_patched('filtr')
@@ -13,20 +12,16 @@ pile = eventlet.GreenPile()
 my_email = 'xitriumcraigslist@gmail.com'
 from password import password
 
-def get_now():
-    return format_date_time(time.mktime(datetime.datetime.now().timetuple()))
-
 
 def set_last_run(filename="lastrun"):
     with open(filename, "w") as f:
-        f.write(datetime.datetime.now().isoformat())
+        now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone("UTC"))
+        f.write(now.isoformat())
 
 def get_last_run(filename="lastrun"):
     try:
         with open(filename) as f:
             d = dateutil.parser.parse(f.read())
-            print d
-            print dir(d)
             return d
     except:
         return ""
@@ -52,7 +47,7 @@ def email_results(email_address, results):
     server.starttls()
     server.login(my_email, password)
     msg = results2msg(results)
-    msg['Subject'] = 'craigslist email %s' % get_now()
+    msg['Subject'] = 'craigslist email'
     msg['From'] = my_email
     msg['To'] = email_address
     print msg
@@ -63,6 +58,7 @@ def email_results(email_address, results):
 if __name__ == "__main__":
     from feeds import feeds as FEEDS, email_address
     results = process_feeds(FEEDS)
-    print results2msg(results)
-    #email_results(email_address, results)
+    if results:
+        print results2msg(results)
+        #email_results(email_address, results)
     set_last_run()
