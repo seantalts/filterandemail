@@ -22,8 +22,8 @@ def normalize(string):
 
 
 parsers = {
-    'craigslist.org/': {'title': lambda page: normalize(page.find('h2', 'postingtitle').text),
-                       'description': lambda page: normalize(page.find('section', {'id': 'postingbody'}).text),
+    'craigslist.org/': {'title': lambda page: page.find('h2', 'postingtitle').text,
+                       'description': lambda page: page.find('section', {'id': 'postingbody'}).text,
                        }
 }
 
@@ -34,8 +34,8 @@ def parse_entry(feed_entry):
             link = link_url(feed_entry)
             page = fetch(link)
             return {'link': link, 'page': page,
-                    'title': functions['title'](page),
-                    'description': functions['description'](page),
+                    'title': normalize(functions['title'](page)),
+                    'description': normalize(functions['description'](page)),
                     'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])).replace(
                         tzinfo=pytz.timezone("UTC")),
                     }
@@ -70,10 +70,15 @@ class RegexFilter(object):
         self.fields = fields
         self.regex = regex
 
-
     def __call__(self, entry):
         return any(re.search(self.regex, entry[field]) for field in self.fields)
 
+    def __str__(self):
+        return "%s(%s, %s)" % (self.__class__, self.fields, self.regex)
+
+class InverseRegexFilter(RegexFilter):
+    def __call__(self, entry):
+        return not super(InverseRegexFilter, self).__call__(entry)
 
 #ImageFilter!?
 
