@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup as Soup
 from eventlet.green import urllib2
 import eventlet
 import re
+import unicodedata
 
 
 def link_url(feed_entry):
@@ -13,9 +14,13 @@ def fetch(url):
     return Soup(urllib2.urlopen(url))
 
 
+def normalize(string):
+    return " ".join(unicodedata.normalize('NFKD', string).encode('ascii','ignore').lower().split())
+
+
 parsers = {
-    'craigslist.org/': {'title': lambda page: page.find('h2', 'postingtitle').text.strip().lower(),
-                       'description': lambda page: " ".join(page.find('section', {'id': 'postingbody'}).text.split()).lower(),
+    'craigslist.org/': {'title': lambda page: normalize(page.find('h2', 'postingtitle').text),
+                       'description': lambda page: normalize(page.find('section', {'id': 'postingbody'}).text),
                        }
 }
 
