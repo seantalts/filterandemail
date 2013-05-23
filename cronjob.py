@@ -42,7 +42,7 @@ def results2msg(results):
     return msg
 
 
-def email_results(email_address, results):
+def email_results(email_addresses, results):
     server = smtplib.SMTP()
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.starttls()
@@ -50,15 +50,15 @@ def email_results(email_address, results):
     msg = results2msg(results)
     msg['Subject'] = 'craigslist email'
     msg['From'] = my_email
-    msg['To'] = email_address
+    msg['To'] = ", ".join(email_addresses)
     print msg
-    server.sendmail(my_email, [email_address], msg.as_string())
+    server.sendmail(my_email, email_addresses, msg.as_string())
     server.quit()
 
 
 if __name__ == "__main__":
-    from feeds import feeds as FEEDS, email_address
+    from feeds import feeds as FEEDS, email_addresses
     results = list(process_feeds(FEEDS))
     if results:
-        email_results(email_address, results)
+        email_results(email_addresses, results)
     set_last_run()
