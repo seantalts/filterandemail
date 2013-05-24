@@ -26,10 +26,17 @@ def get_address(page):
     if address:
         return normalize(address.text)
 
+
+def get_email(page):
+    email = page.find('span', 'replytext').find_next_sibling('a')
+    if email:
+        return normalize(email.text)
+
 parsers = {
     'craigslist.org/': {'title': lambda page: page.find('h2', 'postingtitle').text,
                         'description': lambda page: page.find('section', {'id': 'postingbody'}).text,
                         'address': get_address,
+                        'email': get_email,
                        }
 }
 
@@ -39,12 +46,14 @@ def parse_entry(feed_entry):
         if search in feed_entry['dc_source']:
             link = link_url(feed_entry)
             page = fetch(link)
+            print link
             return {'link': link,
                     'title': normalize(functions['title'](page)),
                     'description': normalize(functions['description'](page)),
                     'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])).replace(
                         tzinfo=pytz.timezone("UTC")),
                     'address': functions['address'](page),
+                    'email': functions['email'](page),
                     }
 
 

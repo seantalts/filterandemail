@@ -37,7 +37,8 @@ def process_feeds(feeds):
 
 
 def results2msg(results):
-    listings = ["\n".join((r['title'], r['description'], r['link'])) for r in results]
+    listings = ["\n".join(filter(None, (r['title'], r['description'], r['email'], r['link'])))
+                for r in results]
     msg = MIMEText("\n\n".join(listings))
     return msg
 
@@ -48,9 +49,11 @@ def email_results(email_addresses, results):
     server.starttls()
     server.login(my_email, password)
     msg = results2msg(results)
-    msg['Subject'] = 'craigslist email'
+    msg['Subject'] = 'craigslist email' if len(results) > 1 else results[0]['title']
     msg['From'] = my_email
     msg['To'] = ", ".join(email_addresses)
+    if len(results) == 1:
+        msg.add_header('reply-to', results[0]['email'])
     print msg
     server.sendmail(my_email, email_addresses, msg.as_string())
     server.quit()
