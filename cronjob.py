@@ -38,7 +38,7 @@ def process_feeds(feeds):
 
 def result2msg(result):
     return MIMEText("\n".join(filter(None, (
-        result['title'], result['description'], result['link']))))
+        result['title'], result['description'], result['address'], result['link']))))
 
 
 def construct_email(email_addresses, result):
