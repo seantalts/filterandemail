@@ -36,10 +36,17 @@ def process_feeds(feeds):
     return chain.from_iterable(pile)
 
 
-def results2msg(results):
-    listings = ["\n".join(filter(None, (r['title'], r['description'], r['email'], r['link'])))
-                for r in results]
-    msg = MIMEText("\n\n".join(listings))
+def result2msg(result):
+    return MIMEText("\n".join(filter(None, (
+        result['title'], result['description'], result['link']))))
+
+
+def construct_email(email_addresses, result):
+    msg = result2msg(result)
+    msg['Subject'] = result['title']
+    msg['From'] = my_email
+    msg['To'] = ", ".join(email_addresses)
+    msg.add_header('reply-to', result['email'])
     return msg
 
 
@@ -48,20 +55,16 @@ def email_results(email_addresses, results):
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.starttls()
     server.login(my_email, password)
-    msg = results2msg(results)
-    msg['Subject'] = 'craigslist email' if len(results) > 1 else results[0]['title']
-    msg['From'] = my_email
-    msg['To'] = ", ".join(email_addresses)
-    if len(results) == 1:
-        msg.add_header('reply-to', results[0]['email'])
-    print msg
-    server.sendmail(my_email, email_addresses, msg.as_string())
+    for result in results:
+        msg = construct_email(email_addresses, result)
+        print msg
+        server.sendmail(my_email, email_addresses, msg.as_string())
     server.quit()
 
 
 if __name__ == "__main__":
     from feeds import feeds as FEEDS, email_addresses
-    results = list(process_feeds(FEEDS))
+    results = process_feeds(FEEDS)
     if results:
         email_results(email_addresses, results)
     set_last_run()
