@@ -8,5 +8,6 @@ feeds = {"http://newyork.craigslist.org/search/aap/que?bedrooms=3&maxAsk=3000&mi
              InverseRegexFilter('[4-9][0-9].{0,4}st'),
              InverseRegexFilter('(1[0-9]|2[0-6]).{0,4}st'),
              InverseRegexFilter('2[458](th)?\s*ave'),
+             InverseRegexFilter('available\s*june'),
          )
          }
