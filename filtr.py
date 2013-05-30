@@ -6,6 +6,7 @@ import re
 import unicodedata
 from time import mktime
 from datetime import datetime
+from collections import defaultdict
 import pytz
 
 
@@ -32,6 +33,7 @@ def get_email(page):
     if email:
         return normalize(email.text)
 
+
 parsers = {
     'craigslist.org/': {'title': lambda page: page.find('h2', 'postingtitle').text,
                         'description': lambda page: page.find('section', {'id': 'postingbody'}).text,
@@ -47,6 +49,9 @@ def parse_entry(feed_entry):
             link = link_url(feed_entry)
             page = fetch(link)
             print link
+            if "This posting has been flagged for removal" in page:
+                print "Flagged for removal."
+                return defaultdict(str)
             return {'link': link,
                     'title': normalize(functions['title'](page)),
                     'description': normalize(functions['description'](page)),
