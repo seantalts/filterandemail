@@ -42,6 +42,20 @@ parsers = {
                        }
 }
 
+PHONE_REGEX = re.compile("(\d\W*){9,10}")
+
+
+def add_phone(dict_):
+    for val in dict_.values():
+        if not val or not isinstance(val, basestring):
+            continue
+        match = PHONE_REGEX.search(val)
+        if match:
+            phone_number = val[match.start() - 1:match.end()]
+            dict_['phone'] = re.sub("\D", "", phone_number)
+            break
+    return dict_
+
 
 def parse_entry(feed_entry):
     for search, functions in parsers.iteritems():
@@ -52,7 +66,7 @@ def parse_entry(feed_entry):
             if "This posting has been flagged for removal" in page:
                 print "Flagged for removal."
                 return defaultdict(str)
-            return {'link': link,
+            d = {'link': link,
                     'title': normalize(functions['title'](page)),
                     'description': normalize(functions['description'](page)),
                     'updated': datetime.fromtimestamp(mktime(feed_entry['updated_parsed'])).replace(
@@ -60,6 +74,8 @@ def parse_entry(feed_entry):
                     'address': functions['address'](page),
                     'email': functions['email'](page),
                     }
+            d = add_phone(d)
+            return d
 
 
 def filter_parsed_entries(entries, filters):
