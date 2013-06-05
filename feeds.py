@@ -10,6 +10,6 @@ ASTORIA_FILTERS = (
          )
 feeds = {"http://newyork.craigslist.org/search/aap/que?bedrooms=3&maxAsk=3000&minAsk=1000&query=astoria%20-rego%20-ditmars%20-elmhurst%20-ridgewood%20-kew%20-forest%20-corona%20-woodside%20-jackson%20-flushing&srchType=A&format=rss":
          ASTORIA_FILTERS,
-         "http://newyork.craigslist.org/search/aap/que?bedrooms=4&maxAsk=4200&query=astoria%20-rego%20-ditmars%20-elmhurst%20-ridgewood%20-kew%20-forest%20-corona%20-woodside%20-jackson%20-flushing&srchType=A&useMap=1&format=rss":
-         ASTORIA_FILTERS,
+         #"http://newyork.craigslist.org/search/aap/que?bedrooms=4&maxAsk=4200&query=astoria%20-rego%20-ditmars%20-elmhurst%20-ridgewood%20-kew%20-forest%20-corona%20-woodside%20-jackson%20-flushing&srchType=A&useMap=1&format=rss":
+         #ASTORIA_FILTERS,
          }
