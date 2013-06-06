@@ -6,7 +6,7 @@ ASTORIA_FILTERS = (
     RegexFilter('broadway|((30(th)?|31(st)?) ave)'),
     InverseRegexFilter('[5-9][0-9].{0,4}st'),
     InverseRegexFilter('4[4-9].{0,4}st'),
-    InverseRegexFilter('(1[0-9]|2[0-6]).{0,4}st'),
+    InverseRegexFilter('(1[0-9]|2[0-2]).{0,4}st'),
     InverseRegexFilter('2[458](th)?\s*ave'),
     InverseRegexFilter('available\s*june'),
     InverseRegexFilter('7182784720', fields=('phone',)),
