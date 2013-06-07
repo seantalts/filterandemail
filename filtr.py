@@ -45,16 +45,17 @@ parsers = {
 PHONE_REGEX = re.compile("(\d\W*){9,10}")
 
 
-def add_phone(dict_):
+def get_phone(dict_):
+    phone = None
     for val in dict_.values():
         if not val or not isinstance(val, basestring):
             continue
         match = PHONE_REGEX.search(val)
         if match:
             phone_number = val[match.start() - 1:match.end()]
-            dict_['phone'] = re.sub("\D", "", phone_number)
+            phone = re.sub("\D", "", phone_number)
             break
-    return dict_
+    return phone
 
 
 def parse_entry(feed_entry):
@@ -74,7 +75,7 @@ def parse_entry(feed_entry):
                     'address': functions['address'](page),
                     'email': functions['email'](page),
                     }
-            d = add_phone(d)
+            d['phone'] = get_phone(d)
             return d
 
 
